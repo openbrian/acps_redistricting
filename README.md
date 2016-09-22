@@ -27,3 +27,24 @@ TIGER - https://www.census.gov/geo/maps-data/data/tiger.html
 
 
 City of Alexandria, Virginia GIS GIS Open Data - http://data.alexgis.opendata.arcgis.com/datasets?q=Census
+
+
+number of school-aged children (5-17):
+	2000	13,575
+	2010	14,006
+
+percent of pop of school age (5-17)
+	2000	10.6%
+	2010	10.0%
+
+2010, Alex pop by age
+0-4     10,000
+5-9      6,000
+10-14    4,500
+15-19    5,000
+
+
+2015 population estimate: 153,511 (wikipedia)
+
+2014 enrollment 13,511 (wikipedia acps page)
+2016 enrollment 15,200 (http://patch.com/virginia/westendalexandria/review-underway-potential-new-west-end-school-site)
