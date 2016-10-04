@@ -185,6 +185,17 @@ select year, name, count(*) from bld_unit_district group by year, name;
 
 
 
+-- just for viewing purposes
+create table bld_district_geom as
+select distinct bld_y.objectid, bld_y.wkb_geometry, bud.district
+from bld_unit_district bud join alexandria.bld_y on bud.bld = bld_y.objectid
+;
+
+alter table bld_district_geom add primary key (objectid);
+create index bld_district_geom_geom on bld_district_geom using gist(wkb_geometry);
+
+
+
 
 
 -- Some districts clearly cut blocks into parts.
@@ -273,14 +284,11 @@ where db.id = sel.id;
 
 
 
--- just for viewing purposes
-create table bld_district_geom as
-select distinct bld_y.objectid, bld_y.wkb_geometry, bud.district
-from bld_unit_district bud join alexandria.bld_y on bud.bld = bld_y.objectid
-;
 
-alter table bld_district_geom add primary key (objectid);
-create index bld_district_geom_geom on bld_district_geom using gist(wkb_geometry);
-
-
-
+alter table district_block add column pop10_pct float;
+update district_block db
+set pop10_pct = pop10 / sub.total
+from (
+	select sum(pop10)::float as total
+	from district_block
+	) sub;
