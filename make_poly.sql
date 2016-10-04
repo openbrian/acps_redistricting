@@ -22,6 +22,18 @@ alter table tabblock add column density float;
 update tabblock set density = pop10/area;
 alter table tabblock alter column density set not null;
 
+-- Add the number of units to each block because housing10 is innacurate.
+alter table tabblock add column units integer;
+update tabblock blk
+set units = sel.units
+from (
+	select blk.gid, coalesce( sum(bunits), 0 ) as units
+	from tabblock blk
+	join bld_y bld on st_within( center, blk.geom )
+	group by blk.gid
+	) sel
+where blk.gid = sel.gid;
+
 
 
  -- Any overlaps?
@@ -161,12 +173,15 @@ having 1 < count(*);
 -- For each district_block, what percentage of people live in it.
 -- Divide the population by number of units in that block.
 alter table district_block add column units integer;
+update district_block set units = 0;
+alter table district_block alter column units set not null;
+
 
 -- Find the number of units in each district_block.
 update district_block db
 set units = sel.units
 from (
-	select db.id, sum(bunits) as units
+	select db.id, coalesce( sum(bunits), 0 ) as units
 	from district_block db
 	join bld_y bld on st_within( center, db.geom )
 	group by db.id
@@ -176,6 +191,26 @@ where db.id = sel.id;
 
 select count(*) from district_block;
 -- TODO: verify this number
+
+
+
+-- Find the population on each district_block.
+alter table district_block add column pop10 integer;
+update district_block db
+set pop10 = sel.pop10
+from (
+	select db.id
+	 	, blk.pop10
+	 	, blk.units
+	 	, db.name, db.gid
+	 	, db.units
+	 	, case when blk.units = 0 then 0
+	 	       else blk.pop10 * (db.units/blk.units::float)
+	 	  end as pop
+	from tabblock blk
+	join district_block db using (gid)
+	) as sel
+where db.id = sel.id;
 
 
 
