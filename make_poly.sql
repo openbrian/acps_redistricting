@@ -292,3 +292,11 @@ from (
 	select sum(pop10)::float as total
 	from district_block
 	) sub;
+
+
+alter table district_block add column enrollment int;
+update district_block db
+set enrollment = round(pop10_pct * 8048*1.003);
+
+select sum(enrollment) from district_block;
+-- 8046
