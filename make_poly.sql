@@ -294,6 +294,22 @@ from (
 	) sub;
 
 
+create table unit_type
+	( id serial primary key
+	, name text not null unique
+	, students_per_unit numeric
+	);
+insert into unit_type (name, students_per_unit) values ('single-family detached', '0.2');
+insert into unit_type (name, students_per_unit) values ('townhouse/duplex', '0.1');
+insert into unit_type (name, students_per_unit) values ('low-rise apartment/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('midrise apartment/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('highrise apartmnet/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('public housing', '1.0');
+insert into unit_type (name, students_per_unit) values ('other income-restricted housing', '0.6');
+
+
+
+
 alter table district_block add column enrollment int;
 update district_block db
 set enrollment = round(pop10_pct * 8048*1.003);
