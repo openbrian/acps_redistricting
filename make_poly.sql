@@ -294,6 +294,7 @@ from (
 	) sub;
 
 
+-- source: Long Range Educational Facilities Plan June 2015
 create table unit_type
 	( id serial primary key
 	, name text not null unique
