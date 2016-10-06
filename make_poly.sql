@@ -335,3 +335,18 @@ from	(
 group by id
 order by number_of_types desc;
 -- Ans: a lot
+
+
+
+select id, count(*)
+from
+        (
+        select id
+        from block, (
+                select floor(35*random()) as r
+                from generate_series(1,350)
+                ) as rand
+        where min <= rand.r and rand.r < max
+        ) as f
+group by id
+order by id;
