@@ -308,6 +308,11 @@ insert into unit_type (name, students_per_unit) values ('highrise apartmnet/cond
 insert into unit_type (name, students_per_unit) values ('public housing', '1.0');
 insert into unit_type (name, students_per_unit) values ('other income-restricted housing', '0.6');
 
+insert into unit_type (name, students_per_unit) values ('Townhouse', '0.1');
+insert into unit_type (name, students_per_unit) values ('Duplex', '0.1');
+insert into unit_type (name, students_per_unit) values ('Attached structure', '0.03');
+insert into unit_type (name, students_per_unit) values ('Detached house', '0.2');
+insert into unit_type (name, students_per_unit) values ('Detached structure', '0.03');
 
 
 
@@ -317,3 +322,16 @@ set enrollment = round(pop10_pct * 8048*1.003);
 
 select sum(enrollment) from district_block;
 -- 8046
+
+
+-- How many district_blocks have multiple types of housing.
+select id, count(*) as number_of_types, array_agg(btype), array_agg(c) as count
+from	(
+	select btype, db.id, count(*) as c
+	from (select * from bld_y where buse=1) b
+	join district_block db on st_within(b.center, db.geom)
+	group by db.id, btype
+	) s
+group by id
+order by number_of_types desc;
+-- Ans: a lot
