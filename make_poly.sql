@@ -323,6 +323,12 @@ set enrollment = round(pop10_pct * 8048*1.003);
 select sum(enrollment) from district_block;
 -- 8046
 
+select addgeometrycolumn( 'acps_redistricting', 'district_block', 'center', '4326', 'POINT', 2 );
+update district_block set center = st_centroid( geom );
+create index idx_district_block_center on district_block using gist(center);
+vacuum analyze district_block;
+
+
 
 -- How many district_blocks have multiple types of housing.
 select id, count(*) as number_of_types, array_agg(btype), array_agg(c) as count
@@ -335,6 +341,11 @@ from	(
 group by id
 order by number_of_types desc;
 -- Ans: a lot
+
+
+alter table district_block add column color int;
+update district_block set color = id % 7;
+alter table district_block alter column color set not null;
 
 
 
