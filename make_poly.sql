@@ -202,7 +202,7 @@ create index bld_district_geom_geom on bld_district_geom using gist(wkb_geometry
 
 create sequence seq_district_block_id;
 
--- Merge the acps_districta and tabblock layers
+-- Merge the acps_districta and tabblock layers.
 drop table if exists district_block;
 create table district_block as
 select nextval('seq_district_block_id') as id, name, gid, st_multi(geom) as geom, type
@@ -225,6 +225,37 @@ select nextval('seq_district_block_id'), null, gid, st_multi(st_difference(b.geo
 from (select st_union(geom) as geom from acps_district where year = 2016) d
 join (select * from tabblock where countyfp10 = '510') b
         on st_overlaps(d.geom, b.geom);
+
+
+alter table district_block add column area double precision;
+update district_block set area = st_area(geom::geography);
+
+
+-- What's the smallest district_block that contains a building?
+select db.id, area
+from district_block db
+join (select * from bld_y where buse = 1) bld on st_within( bld.center, db.geom )
+order by area
+limit 1;
+-- id   | 4615
+-- area | 1073.89429050281
+-- About 1/8th of a city block in Old Town.
+
+
+
+-- Delete all the district_blocks smaller than that, especially the slivers
+-- generated from intersecting the census blocks and the districts.
+create table district_block_small as
+select *
+from district_block
+where area <
+    (
+    select min(area)
+    from district_block db
+    join (select * from bld_y where buse = 1) bld on st_within( bld.center, db.geom )
+    );
+delete from district_block where id in (select id from district_block_small);
+
 
 
 insert into geometry_columns
