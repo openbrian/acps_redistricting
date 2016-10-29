@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="Overpass API">
 <note>The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.</note>
-<meta osm_base="2016-09-29T15:43:03Z"/>
+<meta osm_base="2016-10-29T03:39:02Z"/>
 
   <node id="356567851" lat="38.8420249" lon="-77.0771228" version="3" timestamp="2016-09-20T19:50:46Z" changeset="42307856" uid="791438" user="OpenBrian">
     <tag k="amenity" v="school"/>
@@ -228,7 +228,7 @@
     <tag k="operator" v="Alexandria City Public Schools"/>
     <tag k="type" v="boundary"/>
   </relation>
-  <relation id="6603461" version="1" timestamp="2016-09-22T20:33:00Z" changeset="42359479" uid="791438" user="OpenBrian">
+  <relation id="6603461" version="2" timestamp="2016-09-29T16:40:43Z" changeset="42523456" uid="791438" user="OpenBrian">
     <member type="way" ref="443808516" role="outer"/>
     <member type="way" ref="443856940" role="outer"/>
     <member type="way" ref="443856956" role="outer"/>
@@ -274,13 +274,13 @@
     <member type="way" ref="443856942" role="outer"/>
     <member type="way" ref="9650912" role="outer"/>
     <member type="way" ref="443808517" role="outer"/>
+    <tag k="admin_level" v="11"/>
     <tag k="boundary" v="administrative"/>
-    <tag k="boundary_level" v="11"/>
     <tag k="name" v="Jefferson Houston"/>
     <tag k="operator" v="Alexandria City Public Schools"/>
     <tag k="type" v="boundary"/>
   </relation>
-  <relation id="6603481" version="1" timestamp="2016-09-22T20:48:40Z" changeset="42359777" uid="791438" user="OpenBrian">
+  <relation id="6603481" version="2" timestamp="2016-09-29T16:40:45Z" changeset="42523456" uid="791438" user="OpenBrian">
     <member type="way" ref="443856967" role="outer"/>
     <member type="way" ref="8823767" role="outer"/>
     <member type="way" ref="443856947" role="outer"/>
@@ -304,8 +304,8 @@
     <member type="way" ref="443858534" role="outer"/>
     <member type="way" ref="443858536" role="outer"/>
     <member type="way" ref="443858537" role="outer"/>
+    <tag k="admin_level" v="11"/>
     <tag k="boundary" v="administrative"/>
-    <tag k="boundary_level" v="11"/>
     <tag k="name" v="Matthew Maury"/>
     <tag k="operator" v="Alexandria City Public Schools"/>
     <tag k="type" v="boundary"/>
