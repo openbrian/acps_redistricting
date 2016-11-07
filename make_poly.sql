@@ -173,6 +173,10 @@ from alexandria.bld_y b
 join generate_series(1,1000) as gs(unit) on gs.unit <= b.bunits;
 
 
+alter table bld_unit add primary key (id);
+
+
+
 
 drop view if exists bld_unit_district;
 create view bld_unit_district as
@@ -392,3 +396,19 @@ from
         ) as f
 group by id
 order by id;
+
+
+-- TODO: break down units by type, get the percent per type.
+
+
+select bu.id, pop10_pct, students_per_unit, pop10_pct * students_per_unit as s
+from bld_unit bu
+join (select * from bld_y where buse=1) b on bu.bld = b.objectid
+join unit_type ut on b.btype = ut.name
+join district_block db on st_within(b.center, db.geom)
+order by s desc
+limit 10000
+;
+
+
+
