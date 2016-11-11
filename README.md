@@ -2,6 +2,8 @@
 
 A project to run some GIS based analysis of the ACPS redistricting effort.
 
+See https://github.com/openbrian/acps_redistricting/wiki
+
 See http://overpass-turbo.eu/
 
 ```
