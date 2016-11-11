@@ -302,7 +302,7 @@ select count(*) from district_block;
 -- Find the population on each district_block.
 alter table district_block add column pop10 integer;
 update district_block db
-set pop10 = sel.pop10
+set pop10 = sel.pop
 from (
         select db.id
                 , blk.pop10
@@ -331,10 +331,10 @@ from (
 
 alter table district_block add column enrollment int;
 update district_block db
-set enrollment = round(pop10_pct * 8048*1.003);
+set enrollment = round(pop10_pct * 8048);
 
 select sum(enrollment) from district_block;
--- 8046
+-- 8052
 
 select addgeometrycolumn( 'acps_redistricting', 'district_block', 'center', '4326', 'POINT', 2 );
 update district_block set center = st_centroid( geom );
