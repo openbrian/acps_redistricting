@@ -174,6 +174,8 @@ join generate_series(1,1000) as gs(unit) on gs.unit <= b.bunits;
 
 
 alter table bld_unit add primary key (id);
+alter table bld_unit add constraint bld_fk foreign key (bld) references alexandria.bld_y(objectid);
+
 
 
 
@@ -410,5 +412,40 @@ order by s desc
 limit 10000
 ;
 
+-- Can't distribute students to units by ratio because too many buildings have the same exact percentages (s above).
+
+create table student
+	( id serial primary key
+	, unit int not null references bld_unit(id)
+	);
 
 
+create or replace function distribute_students() returns void as $$
+declare
+	db district_block%rowtype;
+	bu_id bigint;
+begin
+    delete from student;
+    for db in select * from district_block order by id
+    loop
+        raise notice 'id % enrollment %', db.id, db.enrollment;
+        continue when db.enrollment is null;
+        for s in 1..db.enrollment
+        loop
+            select bu.id into bu_id
+            from bld_unit bu
+            join bld_y b on (bu.bld = b.objectid)
+            where st_within( b.center, db.geom )
+            order by random()
+            -- TODO Add weights to building types
+            limit 1;
+            if not found then
+                raise exception 'building unit not found';
+            end if;
+            insert into student (unit) values (bu_id);
+        end loop;
+    end loop;
+end;
+$$ language plpgsql;
+
+select distribute_students();
