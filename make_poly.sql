@@ -329,28 +329,6 @@ from (
 	) sub;
 
 
--- source: Long Range Educational Facilities Plan June 2015
-create table unit_type
-	( id serial primary key
-	, name text not null unique
-	, students_per_unit numeric
-	);
-insert into unit_type (name, students_per_unit) values ('single-family detached', '0.2');
-insert into unit_type (name, students_per_unit) values ('townhouse/duplex', '0.1');
-insert into unit_type (name, students_per_unit) values ('low-rise apartment/condo', '0.03');
-insert into unit_type (name, students_per_unit) values ('midrise apartment/condo', '0.03');
-insert into unit_type (name, students_per_unit) values ('highrise apartmnet/condo', '0.03');
-insert into unit_type (name, students_per_unit) values ('public housing', '1.0');
-insert into unit_type (name, students_per_unit) values ('other income-restricted housing', '0.6');
-
-insert into unit_type (name, students_per_unit) values ('Townhouse', '0.1');
-insert into unit_type (name, students_per_unit) values ('Duplex', '0.1');
-insert into unit_type (name, students_per_unit) values ('Attached structure', '0.03');
-insert into unit_type (name, students_per_unit) values ('Detached house', '0.2');
-insert into unit_type (name, students_per_unit) values ('Detached structure', '0.03');
-
-
-
 alter table district_block add column enrollment int;
 update district_block db
 set enrollment = round(pop10_pct * 8048*1.003);
@@ -399,6 +377,28 @@ order by id;
 
 
 -- TODO: break down units by type, get the percent per type.
+
+
+-- source: Long Range Educational Facilities Plan June 2015
+create table unit_type
+	( id serial primary key
+	, name text not null unique
+	, students_per_unit numeric
+	);
+insert into unit_type (name, students_per_unit) values ('single-family detached', '0.2');
+insert into unit_type (name, students_per_unit) values ('townhouse/duplex', '0.1');
+insert into unit_type (name, students_per_unit) values ('low-rise apartment/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('midrise apartment/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('highrise apartmnet/condo', '0.03');
+insert into unit_type (name, students_per_unit) values ('public housing', '1.0');
+insert into unit_type (name, students_per_unit) values ('other income-restricted housing', '0.6');
+
+insert into unit_type (name, students_per_unit) values ('Townhouse', '0.1');
+insert into unit_type (name, students_per_unit) values ('Duplex', '0.1');
+insert into unit_type (name, students_per_unit) values ('Attached structure', '0.03');
+insert into unit_type (name, students_per_unit) values ('Detached house', '0.2');
+insert into unit_type (name, students_per_unit) values ('Detached structure', '0.03');
+
 
 
 select bu.id, pop10_pct, students_per_unit, pop10_pct * students_per_unit as s
