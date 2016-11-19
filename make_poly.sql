@@ -1,5 +1,6 @@
-set search_path to acps_redistricting, alexandria, census_2010, public;
+set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public;
 
+-- http://apt.postgresql.org/pub/repos/apt/pool/main/p/pgrouting/
 
 select addgeometrycolumn( 'alexandria', 'bld_y', 'center', '4326', 'POINT', 2 );
 update bld_y set center = st_centroid( wkb_geometry );
@@ -146,7 +147,7 @@ select year, name, count(*) from bld_district group by year, name;
 select bld, count(*) from bld_district group by bld having count(*) > 1;
 
 
--- Any buildigs missing?
+-- Any buildings missing?
 select st_astext(st_centroid(wkb_geometry)) as center, *
 from alexandria.bld_y
 where buse = 1
@@ -449,3 +450,46 @@ end;
 $$ language plpgsql;
 
 select distribute_students();
+
+
+drop table if exists student_loc;
+create table student_loc as
+select b.*
+from student s
+join bld_unit bu on (s.unit = bu.id)
+join bld_y b on (bu.bld = b.objectid)
+;
+insert into geometry_columns
+values ('', 'acps_redistricting', 'student_loc', 'center', 2, 4326, 'POINT');
+
+
+-- Install pgrouting, and run osm2pgrouting for the area
+
+-- Find the nearest ways_vertex for each school.
+
+create table school_vertex as
+select school.id as school, school.geom
+	, vertex.id, vertex.osm_id, vertex.the_geom
+	, st_setsrid( st_makeline( school.geom, vertex.the_geom ), 4326 ) as nearest
+from acps_nodes school
+cross join lateral
+	(
+	select *
+	from ways_vertices_pgr as v
+	order by school.geom <-> v.the_geom asc
+	limit 1
+	) as vertex
+where school.id in
+	(356567851,356568426,356568627,356568659,356568820,356568874
+	,356569022,356569187,356569300,356581307,356581309,356605115,356605117
+	);
+alter table school_vertex add constraint check (st_srid(geom) = 4326);
+
+-- Check this with QGIS.  It is correct.
+
+SELECT * FROM pgr_dijkstra
+	('select gid as id, source, target, length_m as cost from ways'
+	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
+	, ARRAY[13224, 6963]
+	, directed := false
+	);
