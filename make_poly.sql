@@ -515,13 +515,22 @@ select * from pgr_dijkstra
 -- 14191
 
 
-create table path_to_958 as 
+create table path_to_958_cost as 
 select a.*, b.the_geom
 from pgr_dijkstra
-	('select gid as id, source, target, length_m AS cost from ways'
+	('select gid as id, source, target, cost, reverse_cost from ways'
 	, 958
 	, (select array_agg(i) from generate_series(1,20000) as i)
 	) as a
- left join ways as b on (edge = gid)
- order by seq;
- 
+left join ways as b on (edge = gid)
+order by seq;
+
+create index path_to_958_cost_the_geom on path_to_958_cost using gist(the_geom);
+
+select populate_geometry_columns
+	(
+	select oid
+	from pg_class
+	where relname = 'path_to_958_cost'
+	);
+
