@@ -485,11 +485,43 @@ where school.id in
 	);
 alter table school_vertex add constraint check (st_srid(geom) = 4326);
 
+
+
 -- Check this with QGIS.  It is correct.
 
-SELECT * FROM pgr_dijkstra
+select * from pgr_dijkstra
 	('select gid as id, source, target, length_m as cost from ways'
 	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
 	, ARRAY[13224, 6963]
 	, directed := false
 	);
+
+select * from pgr_dijkstra
+	('select gid as id, source, target, length_m as cost from ways'
+	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	, directed := false
+	);
+
+--    20	  105,    91,   100ms
+--   200	  319,   318,   322
+--  2000	 3213,  2702,  2686
+-- 20000	21675, 21096, 21940
+
+-- How many nodes are there?
+--gis=> select count(*) from ways_vertices_pgr;
+-- count 
+---------
+-- 14191
+
+
+create table path_to_958 as 
+select a.*, b.the_geom
+from pgr_dijkstra
+	('select gid as id, source, target, length_m AS cost from ways'
+	, 958
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	) as a
+ left join ways as b on (edge = gid)
+ order by seq;
+ 
