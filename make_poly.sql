@@ -22,6 +22,12 @@ create index idx_bld_y_center on bld_y using gist(center);
 vacuum analyze bld_y;
 
 
+select addgeometrycolumn( 'alexandria', 'parcel_y', 'center', '4326', 'POINT', 2 );
+update parcel_y set center = st_centroid( wkb_geometry );
+create index idx_parcel_y_center on parcel_y using gist(center);
+vacuum analyze parcel_y;
+
+
 
 
 --shp2pgsql -s 4326 -c -g geom -I tabblock2010_51_pophu.shp census_2010.tabblock | psql gis
@@ -608,7 +614,8 @@ select objectid
  	 	coalesce( stt.type_long, '' )
  	 	) as name
  	, wkb_geometry
--- 	, st_num, st_alpha, st_dir, st_name, st_type, st_dir
+ 	, st_num, st_alpha, st_dir, st_name, st_type
+ 	, center
 -- 	, stt.*
 -- 	, d.*
 from parcel_y prc
@@ -617,22 +624,95 @@ left join dir d on prc.st_dir = d.dir_short
 where st_name is not null;
 
 
+
 -- Does every parcel map to an OSM way?
-select p.objectid as p_id, p.name as p_name
+drop table if exists parcel_road;
+create table parcel_road as
+select p.objectid as p_id, p.st_num as p_st_num, p.name as p_name
 	, road.gid
 	, road.name
-	, st_distance( p.wkb_geometry, road.the_geom ) as dist
-	, st_makeline( st_centroid( p.wkb_geometry ), st_closestpoint( road.the_geom, st_centroid( p.wkb_geometry ) ) ) as l
+	, st_distance( p.center, road.the_geom ) as dist
+	, st_makeline( st_centroid( p.center ), st_closestpoint( road.the_geom, st_centroid( p.center ) ) ) as l
 from parcel_street p
-join lateral
+left join lateral
 	(
 	select w.gid, w.name, w.the_geom
 	from ways w
-	order by p.wkb_geometry <-> w.the_geom asc
+	where p.name = w.name
+	order by p.center <#> w.the_geom asc
 	limit 1
-	) as road on (p.name = road.name)
+	) as road on true
+--where p.st_num = '405'
+--  and p.st_name = 'HUME'
+--  and p.st_type = 'AV'
+;
+
+
+select w.gid, w.name
+  , st_distance( parcel.wkb_geometry, w.the_geom ) as dist
+from ways w
+cross join
+  (
+  select wkb_geometry
+  from parcel_y
+  where st_name = 'HUME'
+    and st_type = 'AV'
+    and st_num = '405'
+  ) parcel
+where name = 'Hume Avenue'
+order by w.the_geom <-> parcel.wkb_geometry asc
+limit 1
 ;
 
 
 
+-- cross join, match names in outer where.
+select p.*, road.*
+from parcel_street p
+cross join lateral
+	(
+	select w.gid, w.name, w.the_geom
+	from ways w
+	order by p.center <-> w.the_geom asc
+	limit 1
+	) as road
+where p.st_num = '405'
+  and p.st_name = 'HUME'
+  and p.st_type = 'AV'
+  and p.name = road.name
+;
+-- no results
 
+-- cross join, match names in inner where.
+select p.*, road.*
+from parcel_street p
+cross join lateral
+	(
+	select w.gid, w.name, w.the_geom
+	from ways w
+	where p.name = w.name
+	order by p.center <-> w.the_geom asc
+	limit 1
+	) as road
+where p.st_num = '405'
+  and p.st_name = 'HUME'
+  and p.st_type = 'AV'
+;
+-- 1 row, with a road
+
+
+-- left join
+select p.*, road.*
+from parcel_street p
+left join lateral
+	(
+	select w.gid, w.name, w.the_geom
+	from ways w
+	order by p.center <-> w.the_geom asc
+	limit 1
+	) as road on (p.name = road.name)
+where p.st_num = '405'
+  and p.st_name = 'HUME'
+  and p.st_type = 'AV'
+;
+-- 1 row, no road
