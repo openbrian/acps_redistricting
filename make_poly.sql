@@ -2,6 +2,20 @@ set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public
 
 -- http://apt.postgresql.org/pub/repos/apt/pool/main/p/pgrouting/
 
+-- corrections
+update parcel_y set st_type = 'LA' where st_type = 'LN' and st_name = 'ANDREWS'; -- 1
+update parcel_y set st_type = 'DR' where st_type = 'LN' and st_name = 'GOODWIN'; -- 23
+
+update ways set name = 'Bartholomew Street' where name = 'Bartholomew St.';
+update ways set name = 'Hoffs Run Drive' where name = 'Hoffs Run Dr.';
+update ways set name = 'John Carlyle Street' where name = 'John Carlyle St.';
+update ways set name = 'Limerick Street' where name = 'Limerick St.';
+update ways set name = 'Savoy Street' where name = 'Savoy St.';
+update ways set name = 'Saint Stephens Road' where name = 'St. Stephens Road';
+
+
+
+
 select addgeometrycolumn( 'alexandria', 'bld_y', 'center', '4326', 'POINT', 2 );
 update bld_y set center = st_centroid( wkb_geometry );
 create index idx_bld_y_center on bld_y using gist(center);
@@ -496,7 +510,8 @@ select * from pgr_dijkstra
 	, directed := false
 	);
 
-select * from pgr_dijkstra
+select *
+from pgr_dijkstra
 	('select gid as id, source, target, length_m as cost from ways'
 	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
 	, (select array_agg(i) from generate_series(1,20000) as i)
@@ -533,4 +548,91 @@ select populate_geometry_columns
 	from pg_class
 	where relname = 'path_to_958_cost'
 	);
+
+
+select *
+from pgr_dijkstra
+	('select gid as id, source, target, length_m as cost from ways'
+	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	, directed := false
+	)
+where edge = -1;
+
+
+
+create table street_type
+	( type_short char(2) not null primary key
+	, type_long text not null
+	);
+insert into street_type values ('AL', 'Alley');
+insert into street_type values ('AV', 'Avenue');
+insert into street_type values ('BV', 'Boulevard');
+insert into street_type values ('CR', 'Circle');
+insert into street_type values ('CT', 'Court');
+insert into street_type values ('DR', 'Drive');
+insert into street_type values ('HY', 'Highway');
+insert into street_type values ('LA', 'Lane');
+insert into street_type values ('MW', 'Mews');
+insert into street_type values ('PG', 'Passage');  -- in road_cl, but not parcel_y
+insert into street_type values ('PL', 'Place');
+insert into street_type values ('PY', 'Parkway');
+insert into street_type values ('PZ', 'Plaza');
+insert into street_type values ('QY', 'Quay');
+insert into street_type values ('RD', 'Road');
+insert into street_type values ('SQ', 'Square');
+insert into street_type values ('ST', 'Street');
+insert into street_type values ('TP', 'Terrace');
+insert into street_type values ('TR', 'Turnpike');
+insert into street_type values ('WK', 'Walk');
+insert into street_type values ('WY', 'Way');
+
+
+create table dir
+	( dir_short char not null primary key
+	, dir_long char(5) not null
+	);
+insert into dir values ('N', 'North');
+insert into dir values ('S', 'South');
+insert into dir values ('E', 'East');
+insert into dir values ('W', 'West');
+
+
+drop view if exists parcel_street cascade;
+create view parcel_street as
+select objectid
+ 	, trim
+ 	 	(
+ 	 	coalesce( d.dir_long, '' ) || ' ' || 
+ 	 	coalesce( initcap( prc.st_name ), '') || ' ' ||
+ 	 	coalesce( stt.type_long, '' )
+ 	 	) as name
+ 	, wkb_geometry
+-- 	, st_num, st_alpha, st_dir, st_name, st_type, st_dir
+-- 	, stt.*
+-- 	, d.*
+from parcel_y prc
+left join street_type stt on prc.st_type = stt.type_short
+left join dir d on prc.st_dir = d.dir_short
+where st_name is not null;
+
+
+-- Does every parcel map to an OSM way?
+select p.objectid as p_id, p.name as p_name
+	, road.gid
+	, road.name
+	, st_distance( p.wkb_geometry, road.the_geom ) as dist
+	, st_makeline( st_centroid( p.wkb_geometry ), st_closestpoint( road.the_geom, st_centroid( p.wkb_geometry ) ) ) as l
+from parcel_street p
+join lateral
+	(
+	select w.gid, w.name, w.the_geom
+	from ways w
+	order by p.wkb_geometry <-> w.the_geom asc
+	limit 1
+	) as road on (p.name = road.name)
+;
+
+
+
 
