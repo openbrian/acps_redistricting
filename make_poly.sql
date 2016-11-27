@@ -12,6 +12,9 @@ update ways set name = 'John Carlyle Street' where name = 'John Carlyle St.';
 update ways set name = 'Limerick Street' where name = 'Limerick St.';
 update ways set name = 'Savoy Street' where name = 'Savoy St.';
 update ways set name = 'Saint Stephens Road' where name = 'St. Stephens Road';
+update ways set name = 'La Verne Avenue' where name = 'Laverne Avenue';
+update ways set name = 'Lynhaven Drive' where name = 'Lynnhaven Drive';
+
 
 update ways set name = 'Clifford Avenue' where name = 'East Clifford Avenue';
 update ways set name = 'Randolph Avenue' where name = 'East Randolph Avenue';
@@ -31,6 +34,16 @@ select addgeometrycolumn( 'alexandria', 'parcel_y', 'center', '4326', 'POINT', 2
 update parcel_y set center = st_centroid( wkb_geometry );
 create index idx_parcel_y_center on parcel_y using gist(center);
 vacuum analyze parcel_y;
+
+
+-- Convert FT to FORT.
+alter table parcel_y add column osm_name text;
+update parcel_y set osm_name = st_name;
+create index parcel_y_osm_name on parcel_y(osm_name);
+
+update parcel_y set osm_name = regexp_replace( osm_name, '^FT ', 'FORT ' ) where osm_name ~ '^FT ';
+update parcel_y set osm_name = regexp_replace( osm_name, '^ST ', 'SAINT ' ) where osm_name ~ '^ST ';
+update parcel_y set osm_name = regexp_replace( osm_name, '^MT ', 'MOUNT ' ) where osm_name ~ '^MT ';
 
 
 
@@ -600,6 +613,15 @@ insert into street_type values ('WK', 'Walk');
 insert into street_type values ('WY', 'Way');
 
 
+drop table if exists street_name_expand cascade;
+create table street_name_expand
+	( name_short text not null primary key
+	, name_long text not null
+	);
+insert into street_name_expand values ('FT', 'FORT');
+
+
+
 create table dir
 	( dir_short char not null primary key
 	, dir_long char(5) not null
@@ -616,18 +638,18 @@ select objectid
  	, trim
  	 	(
  	 	coalesce( d.dir_long, '' ) || ' ' || 
- 	 	coalesce( initcap( prc.st_name ), '') || ' ' ||
+ 	 	coalesce( initcap( prc.osm_name ), '') || ' ' ||
  	 	coalesce( stt.type_long, '' )
  	 	) as name
  	, wkb_geometry
- 	, st_num, st_alpha, st_dir, st_name, st_type
+ 	, st_num, st_alpha, st_dir, osm_name, st_type
  	, center
 -- 	, stt.*
 -- 	, d.*
 from parcel_y prc
 left join street_type stt on prc.st_type = stt.type_short
 left join dir d on prc.st_dir = d.dir_short
-where st_name is not null;
+where osm_name is not null;
 
 
 
@@ -648,68 +670,27 @@ left join lateral
 	order by p.center <#> w.the_geom asc
 	limit 1
 	) as road on true
---where p.st_num = '405'
---  and p.st_name = 'HUME'
---  and p.st_type = 'AV'
 ;
+select populate_geometry_columns( 'parcel_road'::regclass );
 
-
--- cross join, match names in outer where.
-select p.*, road.*
-from parcel_street p
-cross join lateral
-	(
-	select w.gid, w.name, w.the_geom
-	from ways w
-	order by p.center <-> w.the_geom asc
-	limit 1
-	) as road
-where p.st_num = '405'
-  and p.st_name = 'HUME'
-  and p.st_type = 'AV'
-  and p.name = road.name
-;
--- no results
-
--- cross join, match names in inner where.
-select p.*, road.*
-from parcel_street p
-cross join lateral
-	(
-	select w.gid, w.name, w.the_geom
-	from ways w
-	where p.name = w.name
-	order by p.center <-> w.the_geom asc
-	limit 1
-	) as road
-where p.st_num = '405'
-  and p.st_name = 'HUME'
-  and p.st_type = 'AV'
-;
--- 1 row, with a road
-
-
--- left join
-select p.*, road.*
-from parcel_street p
-left join lateral
-	(
-	select w.gid, w.name, w.the_geom
-	from ways w
-	order by p.center <-> w.the_geom asc
-	limit 1
-	) as road on (p.name = road.name)
-where p.st_num = '405'
-  and p.st_name = 'HUME'
-  and p.st_type = 'AV'
-;
--- 1 row, no road
 
 
 select count(*) from parcel_road where gid is null;
---  1851
+--  962
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    81
+--    72
+
+
+drop table if exists parcel_unmapped cascade;
+create table parcel_unmapped as
+select *
+from parcel_y
+where objectid IN
+	(
+	select p_id
+	from parcel_road
+	where gid is null
+	);
