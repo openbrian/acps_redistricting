@@ -13,7 +13,12 @@ update ways set name = 'Limerick Street' where name = 'Limerick St.';
 update ways set name = 'Savoy Street' where name = 'Savoy St.';
 update ways set name = 'Saint Stephens Road' where name = 'St. Stephens Road';
 
+update ways set name = 'Clifford Avenue' where name = 'East Clifford Avenue';
+update ways set name = 'Randolph Avenue' where name = 'East Randolph Avenue';
+update ways set name = 'Duncan Avenue' where name = 'East Duncan Avenue';
 
+
+-- objectid 24092 in parcel_y is a mistake
 
 
 select addgeometrycolumn( 'alexandria', 'bld_y', 'center', '4326', 'POINT', 2 );
@@ -567,6 +572,7 @@ where edge = -1;
 
 
 
+drop table if exists street_type cascade;
 create table street_type
 	( type_short char(2) not null primary key
 	, type_long text not null
@@ -588,8 +594,8 @@ insert into street_type values ('QY', 'Quay');
 insert into street_type values ('RD', 'Road');
 insert into street_type values ('SQ', 'Square');
 insert into street_type values ('ST', 'Street');
-insert into street_type values ('TP', 'Terrace');
-insert into street_type values ('TR', 'Turnpike');
+insert into street_type values ('TR', 'Terrace');
+insert into street_type values ('TP', 'Turnpike');
 insert into street_type values ('WK', 'Walk');
 insert into street_type values ('WY', 'Way');
 
@@ -648,24 +654,6 @@ left join lateral
 ;
 
 
-select w.gid, w.name
-  , st_distance( parcel.wkb_geometry, w.the_geom ) as dist
-from ways w
-cross join
-  (
-  select wkb_geometry
-  from parcel_y
-  where st_name = 'HUME'
-    and st_type = 'AV'
-    and st_num = '405'
-  ) parcel
-where name = 'Hume Avenue'
-order by w.the_geom <-> parcel.wkb_geometry asc
-limit 1
-;
-
-
-
 -- cross join, match names in outer where.
 select p.*, road.*
 from parcel_street p
@@ -716,3 +704,12 @@ where p.st_num = '405'
   and p.st_type = 'AV'
 ;
 -- 1 row, no road
+
+
+select count(*) from parcel_road where gid is null;
+--  1851
+
+
+-- But how many roads?
+select count(distinct p_name) from parcel_road where gid is null;
+--    81
