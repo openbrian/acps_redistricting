@@ -20,6 +20,22 @@ update ways set name = 'Clifford Avenue' where name = 'East Clifford Avenue';
 update ways set name = 'Randolph Avenue' where name = 'East Randolph Avenue';
 update ways set name = 'Duncan Avenue' where name = 'East Duncan Avenue';
 
+update ways set name = 'Potomac Greens Drive' where gid in (4585, 18335, 18336, 9711, 9712, 9713, 9714, 9709, 9710, 9708, 16402, 18337, 18338, 18339, 18340, 18341, 18342, 18259, 18343, 18344, 18345, 18346, 18347, 18348, 18349, 18350);
+update ways set name = 'Carpenter Road' where gid in (9684, 9685, 9686, 9687, 9688, 9689, 9690, 9691, 9692, 9693, 9694, 9695, 9696, 9697, 9698);
+update ways set name = 'Bracey Lane' where gid in (9702, 9701, 9700);
+update ways set name = 'Day Lane' where gid in (9699);
+update ways set name = 'Miller Lane' where gid in (9705, 9706);
+update ways set name = 'Rose Square' where gid in (9707, 9703);
+update ways set name = 'Lyles Lane' where gid in (9704);
+
+update ways set name = 'West Taylor Run Parkway' where name = 'Taylor Run Parkway West';
+update ways set name = 'East Taylor Run Parkway' where name = 'Taylor Run Parkway East';
+
+update ways set name = 'First Street' where name = '1st Street';
+update ways set name = 'Second Street' where name = '2nd Street';
+
+
+
 
 -- objectid 24092 in parcel_y is a mistake
 
@@ -676,12 +692,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---  962
+--  584
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    72
+--    62
 
 
 drop table if exists parcel_unmapped cascade;
