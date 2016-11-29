@@ -33,8 +33,64 @@ update ways set name = 'East Taylor Run Parkway' where name = 'Taylor Run Parkwa
 
 update ways set name = 'First Street' where name = '1st Street';
 update ways set name = 'Second Street' where name = '2nd Street';
+update ways set name = 'Third Street' where name = '3rd Street';
+
+update ways set name = 'Grand View Drive' where name = 'Grandview Drive';
+
+update ways set name = 'Pulman Place' where name = 'Pullman Place';
+update ways set name = 'Gresham Place' where name = 'Greshem Place';
+
+update ways set name = 'West Wyatt Avenue' where name = 'Wyatt Avenue';
+
+update ways set name = 'Van Valkenburgh Lane' where name = 'Van Valkenburg Lane';
+update ways set name = 'Conoy Street' where gid = 9889;
+
+-- 2 blocks in Parker Gray are completely wrong.
+-- Use this hack for now.
+update ways set name = 'Parker Gray School Way' where gid in (12203, 17760);
+
+update ways set name = 'Hearthstone Mews' where gid = 3708;
+
+-- wacky parcels around here objectid=28762
 
 
+-- Bug in Alexandria GIS data.  Parcel is labelled Tivoli Passage Way.
+-- Update exported OSM data to match.
+-- But do not update OSM.
+update ways set name = 'Tivoli Passage Way' where gid in (4451, 4450, 4449);
+
+-- Bug in Alexandria GIS data.  Parcels are missing W st_dir.
+-- Update exported OSM data to match.
+-- But do not update OSM.  Street signs say W Cedar St.
+update ways set name = 'Cedar Street' where name = 'West Cedar Street';
+
+
+update ways set name = 'Timber Branch Parkway' where gid in (2321, 2745, 3180);
+
+update ways set name = 'Cloverway' where name = 'Cloverway Drive';
+
+update ways set name = 'Goddard Way' where gid in (11457, 11455, 11456);
+
+update ways set name = 'Cockrell Avenue' where name = 'Cockrell Street';
+
+update ways set name = 'Phoenix Mills Place' where gid = 11544;
+
+update ways set name = 'Malvern Court' where gid = 7309;
+
+update ways set name = 'Cleveland Street' where name = 'South Cleveland Street';
+
+update ways set name = 'North Stevenson Square' where gid in (2528, 2529);
+update ways set name = 'South Stevenson Square' where gid = 2530;
+
+update ways set name = 'North Sibley Street' where name = 'Sibley Street';
+
+update ways set name = 'Uhler Terrace' where name = 'West Uhler Terrace';
+
+
+
+
+
+-- create index on ways(name);
 
 
 -- objectid 24092 in parcel_y is a mistake
@@ -56,6 +112,7 @@ vacuum analyze parcel_y;
 alter table parcel_y add column osm_name text;
 update parcel_y set osm_name = st_name;
 create index parcel_y_osm_name on parcel_y(osm_name);
+
 
 update parcel_y set osm_name = regexp_replace( osm_name, '^FT ', 'FORT ' ) where osm_name ~ '^FT ';
 update parcel_y set osm_name = regexp_replace( osm_name, '^ST ', 'SAINT ' ) where osm_name ~ '^ST ';
@@ -648,6 +705,9 @@ insert into dir values ('E', 'East');
 insert into dir values ('W', 'West');
 
 
+
+
+
 drop view if exists parcel_street cascade;
 create view parcel_street as
 select objectid
@@ -682,7 +742,7 @@ left join lateral
 	(
 	select w.gid, w.name, w.the_geom
 	from ways w
-	where p.name = w.name
+	where lower(p.name) = lower(w.name)
 	order by p.center <#> w.the_geom asc
 	limit 1
 	) as road on true
@@ -692,12 +752,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---  584
+--   211
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    62
+--    41
 
 
 drop table if exists parcel_unmapped cascade;
