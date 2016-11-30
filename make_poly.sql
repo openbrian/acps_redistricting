@@ -86,6 +86,8 @@ update ways set name = 'North Sibley Street' where name = 'Sibley Street';
 
 update ways set name = 'Uhler Terrace' where name = 'West Uhler Terrace';
 
+update ways set name = 'Bellmeade Lane' where name = 'Bellemeade Lane';
+
 
 
 
@@ -752,12 +754,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---   211
+--   201
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    41
+--    40
 
 
 drop table if exists parcel_unmapped cascade;
