@@ -94,6 +94,14 @@ update ways set name = 'North Beauregard Street' where name = 'Beauregard Street
 
 update ways set name = 'La Salle Avenue' where name = 'Lasalle Avenue';
 
+update ways set name = 'Saint John Place' where name = 'St John Place';
+
+update ways set name = 'North Lindsay Place' where name = 'Lindsay Place';
+
+
+
+
+
 
 
 
@@ -760,12 +768,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---   160
+--   146
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    38
+--    36
 
 
 drop table if exists parcel_unmapped cascade;
