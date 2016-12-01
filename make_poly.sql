@@ -88,6 +88,11 @@ update ways set name = 'Uhler Terrace' where name = 'West Uhler Terrace';
 
 update ways set name = 'Bellmeade Lane' where name = 'Bellemeade Lane';
 
+update ways set name = null where gid in (2135, 2134, 2133, 2132);
+
+update ways set name = 'North Beauregard Street' where name = 'Beauregard Street';
+
+update ways set name = 'La Salle Avenue' where name = 'Lasalle Avenue';
 
 
 
@@ -710,6 +715,7 @@ insert into dir values ('W', 'West');
 
 
 
+
 drop view if exists parcel_street cascade;
 create view parcel_street as
 select objectid
@@ -754,12 +760,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---   201
+--   160
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    40
+--    38
 
 
 drop table if exists parcel_unmapped cascade;
