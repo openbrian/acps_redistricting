@@ -6,6 +6,10 @@ set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public
 update parcel_y set st_type = 'LA' where st_type = 'LN' and st_name = 'ANDREWS'; -- 1
 update parcel_y set st_type = 'DR' where st_type = 'LN' and st_name = 'GOODWIN'; -- 23
 
+update parcel_y set osm_name = 'O''NEILL' where osm_name = 'ONEILL';
+update parcel_y set osm_name = 'KEITH''S' where osm_name = 'KEITHS';
+
+
 update ways set name = 'Bartholomew Street' where name = 'Bartholomew St.';
 update ways set name = 'Hoffs Run Drive' where name = 'Hoffs Run Dr.';
 update ways set name = 'John Carlyle Street' where name = 'John Carlyle St.';
@@ -73,7 +77,7 @@ update ways set name = 'Goddard Way' where gid in (11457, 11455, 11456);
 
 update ways set name = 'Cockrell Avenue' where name = 'Cockrell Street';
 
-update ways set name = 'Phoenix Mills Place' where gid = 11544;
+update ways set name = 'Phoenix Mill Place' where gid = 11544;
 
 update ways set name = 'Malvern Court' where gid = 7309;
 
@@ -98,6 +102,22 @@ update ways set name = 'Saint John Place' where name = 'St John Place';
 
 update ways set name = 'North Lindsay Place' where name = 'Lindsay Place';
 
+update ways set name = 'Finley Lane' where name = 'Buzzard Lane';
+
+update ways set name = 'Belleaire Road' where name = 'Bellaire Road';
+
+update ways set name = 'Pierpont Street' where name = 'Pierpoint Street';
+
+update ways set name = 'Westminster Place' where name = 'Westminister Place';
+
+update ways set name = 'Jefferson Court' where gid = 2008;
+
+update ways set name = 'Ramsey Alley' where name = 'Ramsey Ally';
+update ways set name = 'Fayette Alley' where name = 'Fayette Ally';
+
+update ways set name = 'Baggett Place' where gid = 3413;
+
+update ways set name = 'Dove Street' where gid in (4506, 4505);
 
 
 
@@ -768,12 +788,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---   146
+--    63
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    36
+--    25
 
 
 drop table if exists parcel_unmapped cascade;
