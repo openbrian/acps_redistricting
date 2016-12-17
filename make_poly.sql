@@ -2,6 +2,10 @@ set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public
 
 -- http://apt.postgresql.org/pub/repos/apt/pool/main/p/pgrouting/
 
+update parcel_y set wkb_geometry = st_makevalid( wkb_geometry ) where not st_isvalid( wkb_geometry );
+-- update 9;
+
+
 -- corrections
 update parcel_y set st_type = 'LA' where st_type = 'LN' and st_name = 'ANDREWS'; -- 1
 update parcel_y set st_type = 'DR' where st_type = 'LN' and st_name = 'GOODWIN'; -- 23
@@ -9,9 +13,18 @@ update parcel_y set st_type = 'DR' where st_type = 'LN' and st_name = 'GOODWIN';
 update parcel_y set osm_name = 'O''NEILL' where osm_name = 'ONEILL';
 update parcel_y set osm_name = 'KEITH''S' where osm_name = 'KEITHS';
 
+update parcel_y set st_dir = 'S', st_name = 'FAYETTE', st_type = 'ST' where objectid = 14969;
+
+
+update parcel_y set st_type = 'ST' where st_type = 'PL' and objectid in (11941, 24114);
+
+
+
+
 
 -- Ways was re-imported and now has new gids.  Some corrections remain.  Some new corrections.
 
+update ways set name = 'Saint Stephens Road' where name = 'St Stephens Road';
 update ways set name = 'Saint Stephens Road' where name = 'St. Stephens Road';
 
 -- Bug in Alexandria GIS data.  Parcel is labelled Tivoli Passage Way.
@@ -22,6 +35,10 @@ update ways set name = 'Tivoli Passage Way' where gid in (4433, 4432, 4431);
 update ways set name = 'Third Street' where name = '3rd Street';
 
 update ways set name = 'Cook Street' where name = 'Cook Steet';
+
+update ways set name = 'Beverley Drive' where name = 'Beverly Drive';
+
+update ways set name = 'King Street' where gid in (29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40);
 
 
 -- create index on ways(name);
@@ -177,7 +194,7 @@ alter table acps_district alter column k5_capacity set not null;
 
 
 -- If new buildings are created over time, then we will need to join on year too.
-drop table if exists bld_district;
+drop table if exists bld_district cascade;
 -- TODO: Use centroid of building to avoid loosing buildings that are
 -- not fully in a single district.  Or fix district boundarys to not
 -- slice buildings.
@@ -211,9 +228,9 @@ select bld, count(*) from bld_district group by bld having count(*) > 1;
 
 
 --Enumerate all the units.
-drop sequence if exists seq_bld_unit;
+drop sequence if exists seq_bld_unit cascade;
 create sequence seq_bld_unit;
-drop table if exists bld_unit;
+drop table if exists bld_unit cascade;
 create table bld_unit as 
 select nextval('seq_bld_unit') as id, b.objectid as bld, gs.unit
 from alexandria.bld_y b
@@ -227,7 +244,7 @@ alter table bld_unit add constraint bld_fk foreign key (bld) references alexandr
 
 
 
-drop view if exists bld_unit_district;
+drop view if exists bld_unit_district cascade;
 create view bld_unit_district as
 select *
 from bld_district bd
@@ -239,9 +256,11 @@ select year, name, count(*) from bld_unit_district group by year, name;
 
 
 -- just for viewing purposes
+drop table if exists bld_district_geom cascade;
 create table bld_district_geom as
-select distinct bld_y.objectid, bld_y.wkb_geometry, bud.district
-from bld_unit_district bud join alexandria.bld_y on bud.bld = bld_y.objectid
+select distinct bld_y.objectid, bld_y.wkb_geometry, bud.year, bud.name
+from bld_unit_district bud
+join alexandria.bld_y on bud.bld = bld_y.objectid
 ;
 
 alter table bld_district_geom add primary key (objectid);
@@ -253,10 +272,11 @@ create index bld_district_geom_geom on bld_district_geom using gist(wkb_geometry
 
 -- Some districts clearly cut blocks into parts.
 
+drop sequence if exists seq_district_block_id cascade;
 create sequence seq_district_block_id;
 
 -- Merge the acps_districta and tabblock layers.
-drop table if exists district_block;
+drop table if exists district_block cascade;
 create table district_block as
 select nextval('seq_district_block_id') as id, name, gid, st_multi(geom) as geom, type
 from    (
@@ -298,6 +318,7 @@ limit 1;
 
 -- Delete all the district_blocks smaller than that, especially the slivers
 -- generated from intersecting the census blocks and the districts.
+drop table if exists district_block_small cascade;
 create table district_block_small as
 select *
 from district_block
@@ -316,6 +337,7 @@ values ('', 'acps_redistricting', 'district_block', 'geom', 2, 4326, 'MULTIPOLYG
 
 alter table district_block add primary key (id);
 --create unique index idx_district_block_name_gid on district_block (name, gid);
+
 select name, gid, count(*)
 from district_block
 group by name, gid
@@ -388,7 +410,8 @@ select sum(enrollment) from district_block;
 select addgeometrycolumn( 'acps_redistricting', 'district_block', 'center', '4326', 'POINT', 2 );
 update district_block set center = st_centroid( geom );
 create index idx_district_block_center on district_block using gist(center);
-vacuum analyze district_block;
+
+--vacuum analyze district_block;
 
 
 
@@ -513,6 +536,7 @@ values ('', 'acps_redistricting', 'student_loc', 'center', 2, 4326, 'POINT');
 
 -- Find the nearest ways_vertex for each school.
 
+drop table if exists school_vertex cascade;
 create table school_vertex as
 select school.id as school, school.geom
 	, vertex.id, vertex.osm_id, vertex.the_geom
@@ -529,7 +553,7 @@ where school.id in
 	(356567851,356568426,356568627,356568659,356568820,356568874
 	,356569022,356569187,356569300,356581307,356581309,356605115,356605117
 	);
-alter table school_vertex add constraint check (st_srid(geom) = 4326);
+alter table school_vertex add constraint school_vertex_srid check (st_srid(geom) = 4326);
 
 
 
@@ -575,11 +599,12 @@ order by seq;
 
 create index path_to_958_cost_the_geom on path_to_958_cost using gist(the_geom);
 
+
 select oid
 from pg_class
 where relname = 'path_to_958_cost';
 
-select populate_geometry_columns( 4379475 );
+select populate_geometry_columns( 4381782 );
 
 
 select *
@@ -688,12 +713,12 @@ select populate_geometry_columns( 'parcel_road'::regclass );
 
 
 select count(*) from parcel_road where gid is null;
---    11
+--    40
 
 
 -- But how many roads?
 select count(distinct p_name) from parcel_road where gid is null;
---    7
+--    9
 
 
 drop table if exists parcel_unmapped cascade;
