@@ -2,6 +2,33 @@ set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public
 
 -- http://apt.postgresql.org/pub/repos/apt/pool/main/p/pgrouting/
 
+-- Find the classes of osm ways that need maxspeed.
+select * from
+	(
+	select class_id, count(*)
+	from ways
+	group by class_id
+	) g
+where class_id not in
+	(
+	select class_id
+	from osm_way_classes
+	where maxspeed is not null
+	)
+order by 2 desc;
+
+alter table osm_way_classes add column maxspeed integer;
+update osm_way_classes set maxspeed = 0 where class_id in (113, 114, 117, 118, 119, 122, 201, 202); -- track, pedestrian, footway, path, highway=cycleway, steps, cycleway=lane, cycleway=track
+update osm_way_classes set maxspeed = 15 where class_id = 112; -- service
+update osm_way_classes set maxspeed = 20 where class_id in (110, 111); -- residential, living street
+update osm_way_classes set maxspeed = 30 where class_id in (123, 124, 125); -- unclassified, secondary_link, tertiary_link
+update osm_way_classes set maxspeed = 35 where class_id in (106, 107, 108, 109); -- primary, primary_link, secondary, tertiary
+update osm_way_classes set maxspeed = 45 where class_id in (102, 104, 105); -- motorway_link (highway ramp), trunk, trunk_link
+update osm_way_classes set maxspeed = 65 where class_id in (101); -- motorway (highway)
+
+
+
+
 update parcel_y set wkb_geometry = st_makevalid( wkb_geometry ) where not st_isvalid( wkb_geometry );
 -- update 9;
 
@@ -42,6 +69,10 @@ update ways set name = 'King Street' where gid in (29, 30, 31, 32, 33, 34, 35, 3
 
 
 -- create index on ways(name);
+
+
+delete from ways where length = 0;  -- 1 record
+
 
 
 -- objectid 24092 in parcel_y is a mistake
@@ -597,6 +628,22 @@ from pgr_dijkstra
 left join ways as b on (edge = gid)
 order by seq;
 
+
+drop table if exists path_to_958_cost;
+create table path_to_958_cost as 
+select a.*, b.the_geom
+from pgr_dijkstra
+	('
+select gid as id, source, target, length / maxspeed as cost, (cost / reverse_cost) * (length / maxspeed) as reverse_cost
+from ways
+join osm_way_classes using (class_id)
+where 0 < maxspeed'
+	, 958
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	) as a
+left join ways as b on (edge = gid)
+order by seq;
+
 create index path_to_958_cost_the_geom on path_to_958_cost using gist(the_geom);
 
 
@@ -604,7 +651,7 @@ select oid
 from pg_class
 where relname = 'path_to_958_cost';
 
-select populate_geometry_columns( 4381782 );
+select populate_geometry_columns( 4382198 );
 
 
 select *
@@ -630,7 +677,7 @@ select oid
 from pg_class
 where relname = 'path_to_958_cost_lasthop';
 
-select populate_geometry_columns( 4382083 );
+select populate_geometry_columns( 4382205 );
 
 
 
