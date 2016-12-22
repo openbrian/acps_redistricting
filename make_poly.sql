@@ -618,6 +618,23 @@ where edge = -1;
 
 
 
+
+drop table if exists path_to_958_cost_lasthop cascade;
+create table path_to_958_cost_lasthop as
+select distinct on (end_vid) *
+from path_to_958_cost
+where edge != -1
+order by end_vid, path_seq desc;
+
+select oid
+from pg_class
+where relname = 'path_to_958_cost_lasthop';
+
+select populate_geometry_columns( 4382083 );
+
+
+
+
 drop table if exists street_type cascade;
 create table street_type
 	( type_short char(2) not null primary key
@@ -731,3 +748,12 @@ where objectid IN
 	from parcel_road
 	where gid is null
 	);
+
+
+select *
+from pgr_dijkstraCost
+	('select gid as id, source, target, cost, reverse_cost from ways'
+	, 958
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	);
+
