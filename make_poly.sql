@@ -1,5 +1,9 @@
 set search_path to acps_redistricting, alexandria, alex_pgr, census_2010, public;
 
+-- acps_nodes, acps_way_nodes, acps_ways, acps_relations, acps_relation_members, acps_users were imported from Overpass API.
+-- All elementary schools are nodes.  None are ways.  G W Middle School is a way.
+
+
 -- http://apt.postgresql.org/pub/repos/apt/pool/main/p/pgrouting/
 
 -- Find the classes of osm ways that need maxspeed.
@@ -563,9 +567,40 @@ insert into geometry_columns
 values ('', 'acps_redistricting', 'student_loc', 'center', 2, 4326, 'POINT');
 
 
+-- acps_nodes is from Overpass API.
+
+
 -- Install pgrouting, and run osm2pgrouting for the area
 
 -- Find the nearest ways_vertex for each school.
+create view osm_way_classes_roads as
+select * from osm_way_classes
+where class_id in
+	( 112 -- service
+	, 110, 111 -- residential, living street
+	, 123, 124, 125 -- unclassified, secondary_link, tertiary_link
+	, 106, 107, 108, 109 -- primary, primary_link, secondary, tertiary
+	, 102, 104, 105 -- motorway_link (highway ramp), trunk, trunk_link
+	, 101 -- motorway (highway)
+	);
+
+
+drop view if exists ways_vertices_pgr_roads;
+create view ways_vertices_pgr_roads as
+select distinct *
+from
+	(
+	select v.*
+	from ways_vertices_pgr v
+	join ways w on v.id = w.source
+	where w.class_id in (select class_id from osm_way_classes_roads)
+	union
+	select v.*
+	from ways_vertices_pgr v
+	join ways w on v.id = w.target
+	where w.class_id in (select class_id from osm_way_classes_roads)
+	) as v;
+
 
 drop table if exists school_vertex cascade;
 create table school_vertex as
@@ -576,7 +611,7 @@ from acps_nodes school
 cross join lateral
 	(
 	select *
-	from ways_vertices_pgr as v
+	from ways_vertices_pgr_roads as v
 	order by school.geom <-> v.the_geom asc
 	limit 1
 	) as vertex
@@ -629,15 +664,22 @@ left join ways as b on (edge = gid)
 order by seq;
 
 
+create view ways_cost as
+select gid as id
+     , source
+     , target
+     , length / maxspeed as cost
+     , (cost / reverse_cost) * (length / maxspeed) as reverse_cost
+from ways
+join osm_way_classes using (class_id)
+where 0 < maxspeed;
+
+
 drop table if exists path_to_958_cost;
 create table path_to_958_cost as 
 select a.*, b.the_geom
 from pgr_dijkstra
-	('
-select gid as id, source, target, length / maxspeed as cost, (cost / reverse_cost) * (length / maxspeed) as reverse_cost
-from ways
-join osm_way_classes using (class_id)
-where 0 < maxspeed'
+	( 'select * from ways_cost'
 	, 958
 	, (select array_agg(i) from generate_series(1,20000) as i)
 	) as a
@@ -647,11 +689,7 @@ order by seq;
 create index path_to_958_cost_the_geom on path_to_958_cost using gist(the_geom);
 
 
-select oid
-from pg_class
-where relname = 'path_to_958_cost';
-
-select populate_geometry_columns( 4382198 );
+select populate_geometry_columns( 'path_to_958_cost'::regclass );
 
 
 select *
@@ -673,11 +711,7 @@ from path_to_958_cost
 where edge != -1
 order by end_vid, path_seq desc;
 
-select oid
-from pg_class
-where relname = 'path_to_958_cost_lasthop';
-
-select populate_geometry_columns( 4382205 );
+select populate_geometry_columns( 'path_to_958_cost_lasthop'::regclass );
 
 
 
@@ -799,8 +833,46 @@ where objectid IN
 
 --select *
 --from pgr_dijkstraCost
---	('select gid as id, source, target, cost, reverse_cost from ways'
+--	( 'select * from ways_cost'
 --	, 958
 --	, (select array_agg(i) from generate_series(1,20000) as i)
 --	);
+
+
+
+drop table if exists path_to_schools_cost;
+create table path_to_schools_cost as 
+select a.*, b.the_geom
+from pgr_dijkstra
+	( 'select * from ways_cost'
+	, (select array_agg( id )::int[] from school_vertex)
+	, (select array_agg(i) from generate_series(1,20000) as i)
+	) as a
+left join ways as b on (edge = gid)
+order by seq;
+
+create index path_to_schools_cost_the_geom on path_to_schools_cost using gist(the_geom);
+select populate_geometry_columns( 'path_to_schools_cost'::regclass );
+
+
+--create index path_to_schools_cost_end on path_to_schools_cost(end_vid);
+--create index path_to_schools_cost_start on path_to_schools_cost(start_vid);
+create index path_to_schools_cost_trio on path_to_schools_cost( end_vid, start_vid, path_seq );
+
+
+
+drop table if exists path_to_schools_cost_lasthop cascade;
+create table path_to_schools_cost_lasthop as
+select distinct on (end_vid) *
+from
+	(
+	select distinct on (end_vid, start_vid) *
+	from path_to_schools_cost
+	where edge != -1
+	order by end_vid, start_vid, path_seq desc
+	) all_pairs_max_seq
+order by end_vid, path_seq;  -- get the shortest school to this end_vid
+
+
+select populate_geometry_columns( 'path_to_schools_cost_lasthop'::regclass );
 
