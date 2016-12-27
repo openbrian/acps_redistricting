@@ -242,18 +242,18 @@ select bld, count(*) from bld_district group by bld having count(*) > 1;
 
 
 -- Any buildings missing?
-select st_astext(st_centroid(wkb_geometry)) as center, *
-from alexandria.bld_y
-where buse = 1
-  and objectid not in
-        (
-        select bld
-        from bld_district
-        )
-order by st_x(st_centroid(wkb_geometry));
+--select st_astext(st_centroid(wkb_geometry)) as center, *
+--from alexandria.bld_y
+--where buse = 1
+--  and objectid not in
+--        (
+--        select bld
+--        from bld_district
+--        )
+--order by st_x(st_centroid(wkb_geometry));
 
-select district, count(*) from bld_district group by district;
-select bld, count(*) from bld_district group by bld having count(*) > 1;
+--select district, count(*) from bld_district group by district;
+--select bld, count(*) from bld_district group by bld having count(*) > 1;
 
 
 
@@ -281,7 +281,7 @@ select *
 from bld_district bd
 join bld_unit using (bld);
 
-select year, name, count(*) from bld_unit_district group by year, name;
+--select year, name, count(*) from bld_unit_district group by year, name;
 
 
 
@@ -336,11 +336,11 @@ update district_block set area = st_area(geom::geography);
 
 
 -- What's the smallest district_block that contains a building?
-select db.id, area
-from district_block db
-join (select * from bld_y where buse = 1) bld on st_within( bld.center, db.geom )
-order by area
-limit 1;
+--select db.id, area
+--from district_block db
+--join (select * from bld_y where buse = 1) bld on st_within( bld.center, db.geom )
+--order by area
+--limit 1;
 -- id   | 4615
 -- area | 1073.89429050281
 -- About 1/8th of a city block in Old Town.
@@ -369,10 +369,10 @@ values ('', 'acps_redistricting', 'district_block', 'geom', 2, 4326, 'MULTIPOLYG
 alter table district_block add primary key (id);
 --create unique index idx_district_block_name_gid on district_block (name, gid);
 
-select name, gid, count(*)
-from district_block
-group by name, gid
-having 1 < count(*);
+--select name, gid, count(*)
+--from district_block
+--group by name, gid
+--having 1 < count(*);
 -- whoa, 92 rows
 
 
@@ -465,18 +465,18 @@ alter table district_block alter column color set not null;
 
 
 
-select id, count(*)
-from
-        (
-        select id
-        from block, (
-                select floor(35*random()) as r
-                from generate_series(1,350)
-                ) as rand
-        where min <= rand.r and rand.r < max
-        ) as f
-group by id
-order by id;
+--select id, count(*)
+--from
+--        (
+--        select id
+--        from block, (
+--                select floor(35*random()) as r
+--                from generate_series(1,350)
+--                ) as rand
+--        where min <= rand.r and rand.r < max
+--        ) as f
+--group by id
+--order by id;
 
 
 -- TODO: break down units by type, get the percent per type.
@@ -504,14 +504,14 @@ insert into unit_type (name, students_per_unit) values ('Detached structure', '0
 
 
 
-select bu.id, pop10_pct, students_per_unit, pop10_pct * students_per_unit as s
-from bld_unit bu
-join (select * from bld_y where buse=1) b on bu.bld = b.objectid
-join unit_type ut on b.btype = ut.name
-join district_block db on st_within(b.center, db.geom)
-order by s desc
-limit 10000
-;
+--select bu.id, pop10_pct, students_per_unit, pop10_pct * students_per_unit as s
+--from bld_unit bu
+--join (select * from bld_y where buse=1) b on bu.bld = b.objectid
+--join unit_type ut on b.btype = ut.name
+--join district_block db on st_within(b.center, db.geom)
+--order by s desc
+--limit 10000;
+
 
 -- Can't distribute students to units by ratio because too many buildings have the same exact percentages (s above).
 
@@ -590,20 +590,20 @@ alter table school_vertex add constraint school_vertex_srid check (st_srid(geom)
 
 -- Check this with QGIS.  It is correct.
 
-select * from pgr_dijkstra
-	('select gid as id, source, target, length_m as cost from ways'
-	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
-	, ARRAY[13224, 6963]
-	, directed := false
-	);
+--select * from pgr_dijkstra
+--	('select gid as id, source, target, length_m as cost from ways'
+--	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
+--	, ARRAY[13224, 6963]
+--	, directed := false
+--	);
 
-select *
-from pgr_dijkstra
-	('select gid as id, source, target, length_m as cost from ways'
-	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
-	, (select array_agg(i) from generate_series(1,20000) as i)
-	, directed := false
-	);
+--select *
+--from pgr_dijkstra
+--	('select gid as id, source, target, length_m as cost from ways'
+--	, ARRAY[958,1270,4566,3616,4614,9388,11161,5870,10394,11298,10082,5246,9121]
+--	, (select array_agg(i) from generate_series(1,20000) as i)
+--	, directed := false
+--	);
 
 --    20	  105,    91,   100ms
 --   200	  319,   318,   322
@@ -797,10 +797,10 @@ where objectid IN
 	);
 
 
-select *
-from pgr_dijkstraCost
-	('select gid as id, source, target, cost, reverse_cost from ways'
-	, 958
-	, (select array_agg(i) from generate_series(1,20000) as i)
-	);
+--select *
+--from pgr_dijkstraCost
+--	('select gid as id, source, target, cost, reverse_cost from ways'
+--	, 958
+--	, (select array_agg(i) from generate_series(1,20000) as i)
+--	);
 
